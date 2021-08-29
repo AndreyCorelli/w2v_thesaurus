@@ -1,0 +1,21 @@
+# django.test
+tests/resources/parsed/**
+tests/resources/parsed/**/*
+tests/resources/parsed/*.*
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# dotenv
+.env
+
+# virtualenv
+venv/
+ENV/
+
+**/.idea/*
+**/.vs_code/*
+**/.vscode/*
+**/samples
