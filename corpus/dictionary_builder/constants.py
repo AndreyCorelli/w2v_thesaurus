@@ -1,0 +1,1 @@
+MAX_WORD_LEN = 50

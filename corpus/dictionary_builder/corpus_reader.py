@@ -5,6 +5,7 @@ import os
 from typing import List, Optional, Generator
 
 from corpus.dictionary_builder.alphabet import Alphabet, alphabet_by_code
+from corpus.dictionary_builder.constants import MAX_WORD_LEN
 
 
 class CorpusReader:
@@ -48,6 +49,9 @@ class CorpusReader:
             self.sentences.append(sentc)
         for word in self.processor.extract_words(file_text, self.alphabet):
             word = self.alphabet.preprocess_word(word)
+            if not word:
+                continue
+            word = word[:MAX_WORD_LEN]
             if len(sentc) < self.sentence_length:
                 sentc.append(word)
             else:
