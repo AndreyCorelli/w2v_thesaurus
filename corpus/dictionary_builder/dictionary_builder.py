@@ -1,5 +1,5 @@
 import math
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from corpus.dictionary_builder.corpus_repository import get_corpus_repository
 from corpus.dictionary_builder.word_freq_card import WordFrequencyCard
@@ -59,17 +59,34 @@ class DictionaryBuilder:
             card.vector_variance = math.sqrt(sum_dev / len(v)) / mean_v
 
     def _find_neighbours(self):
-        # this step helps with potential memory problem
-        vectors = np.array([w.vector.astype(np.float32) for w in self.cards])
-        # v_sparse = sparse.csr_matrix(vectors)
-        similarities: np.ndarray = cosine_similarity(vectors)
+        part_size = 15000
+        for i in range(math.ceil(len(self.cards) / part_size)):
+            self._find_neighbours_part(i, part_size)
 
-        for i in range(len(similarities)):
-            # shrunk = np.delete(similarities[i], i)
-            shrunk = similarities[i]
-            sort_indx = np.argsort(shrunk)
-            neib_indx = sort_indx[-self.NEIGHBOURS_COUNT - 1: -1]
-            self.cards[i].neighbours = [self.cards[ind].id for ind in neib_indx]
+    def _find_neighbours_part(self, start_index: int, size: int):
+        start_card = start_index * size
+        src_vectors = np.array([w.vector.astype(np.float32) for w in
+                                self.cards[start_card: start_card + size]])
+        all_neighbours: List[List[Tuple[int, float]]] = [[] for _ in range(size)]
+        for index in range(start_index, start_index + 100000):
+            start = index * size
+            end = min(len(self.cards), (index+1)*size)
+            dst_vectors = np.array([w.vector.astype(np.float32) for w in
+                                    self.cards[start: end]])
+            if len(dst_vectors) == 0:
+                break
+            similarities: np.ndarray = cosine_similarity(src_vectors, dst_vectors)
+
+            for i in range(len(similarities)):
+                shrunk = np.delete(similarities[i], i) if index == start_index else similarities[i]
+                sort_indx = np.argsort(shrunk)
+                index_sim = [(i + start, shrunk[i]) for i in sort_indx[-self.NEIGHBOURS_COUNT:]]
+                all_neighbours[i] += index_sim
+
+        for i in range(len(src_vectors)):
+            all_neighbours[i].sort(key=lambda v: v[1], reverse=True)
+            neib_indx = all_neighbours[i][:self.NEIGHBOURS_COUNT]
+            self.cards[i + start_card].neighbours = [self.cards[ind].id for ind, _ in neib_indx]
 
     @classmethod
     def _get_cosine_distance(cls, a: List[float], b: List[float]):

@@ -10,6 +10,12 @@ class CorpusRepository:
     def __init__(self):
         self._base = declarative_base()
 
+    def get_cards_by_lang(self, lang_code: str) -> List[WordCard]:
+        engine = create_db_engine()
+        with Session(engine) as session:
+            query = session.query(WordCard).filter(WordCard.lang_code == lang_code)
+            return list(query)
+
     def clear_cards_by_lang(self, lang_code: str):
         engine = create_db_engine()
         with Session(engine) as session:
