@@ -1,0 +1,13 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+    <div class="container">
+        <h1>Dictionary</h1>
+        <p>Select language</p>
+        <ul>
+            {% for code, title in code_title %}
+                <li><a href="{{ url_for('dictionary', language=code) }}">{{ title }} ({{ code }})</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

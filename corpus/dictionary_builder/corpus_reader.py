@@ -2,7 +2,7 @@ import codecs
 
 import regex as re
 import os
-from typing import List, Optional, Generator
+from typing import List, Optional, Generator, Tuple
 
 from corpus.dictionary_builder.alphabet import Alphabet, alphabet_by_code
 from corpus.dictionary_builder.constants import MAX_WORD_LEN
@@ -25,10 +25,7 @@ class CorpusReader:
              encoding: str = 'utf-8',
              processor: 'RawTextProcessor' = None):
         self.corpus_folder = corpus_folder
-        self.corpus_lang = corpus_lang
-        self.encoding = encoding
-        self.alphabet = alphabet_by_code[corpus_lang]
-        self.processor = processor or RawTextProcessor
+        self.setup_reader(corpus_lang, encoding, processor)
 
         files = [f for f in os.listdir(corpus_folder)]
         for file_name in files:
@@ -37,6 +34,12 @@ class CorpusReader:
                 continue
             file_path = os.path.join(corpus_folder, file_name)
             self.read_file(file_path)
+
+    def setup_reader(self, corpus_lang, encoding, processor):
+        self.corpus_lang = corpus_lang
+        self.encoding = encoding
+        self.alphabet = alphabet_by_code[corpus_lang]
+        self.processor = processor or RawTextProcessor
 
     def read_file(self, file_path: str):
         with codecs.open(file_path, mode='r', encoding=self.encoding) as fr:
@@ -57,6 +60,24 @@ class CorpusReader:
             else:
                 sentc = [word]
                 self.sentences.append(sentc)
+
+    def split_text_words(self, file_text: str) -> List[Tuple[str, int, int]]:
+        file_text = file_text.lower()
+        word_list: List[Tuple[str, str]] = []
+        for orig_word in self.processor.extract_words(file_text, self.alphabet):
+            word = self.alphabet.preprocess_word(orig_word)
+            if not word:
+                continue
+            word = word[:MAX_WORD_LEN]
+            word_list.append((orig_word, word))
+        words: List[Tuple[str, int, int]] = []
+
+        start = 0
+        for orig_word, word in word_list:
+            start = file_text.find(orig_word, start)
+            words.append((word, start, start + len(orig_word)))
+            start += len(orig_word)
+        return words
 
 
 class RawTextProcessor:

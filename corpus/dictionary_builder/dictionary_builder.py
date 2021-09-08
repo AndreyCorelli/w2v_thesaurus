@@ -2,6 +2,7 @@ import math
 from typing import List, Dict, Tuple
 
 from corpus.dictionary_builder.corpus_repository import get_corpus_repository
+from corpus.dictionary_builder.lang_dictionary import LangDictionary
 from corpus.dictionary_builder.word_freq_card import WordFrequencyCard
 from corpus.models import WordCard
 from gensim.models import Word2Vec
@@ -20,7 +21,7 @@ class DictionaryBuilder:
 
     def build(self,
               sentences: List[List[str]],
-              lang_code: str):
+              lang_code: str) -> LangDictionary:
         self.sentences = sentences
         self.words = [item for sublist in sentences for item in sublist]
         unique_words = set(self.words)
@@ -33,6 +34,7 @@ class DictionaryBuilder:
         repo.insert_cards(self.cards)
         self._find_neighbours()
         repo.update_neighbours(self.cards)
+        return LangDictionary(lang_code, self.cards)
 
     def _calculate_frequency_uniformity(self):
         f_cards = WordFrequencyCard.calc_stat(self.words)

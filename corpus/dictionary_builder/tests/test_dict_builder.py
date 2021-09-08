@@ -1,12 +1,22 @@
 from unittest import TestCase
 
+from corpus.dictionary_builder.corpus_file_manager import CorpusFileManager
 from corpus.dictionary_builder.corpus_reader import CorpusReader
 from corpus.dictionary_builder.corpus_repository import get_corpus_repository
 from corpus.dictionary_builder.dictionary_builder import DictionaryBuilder
+from corpus.dictionary_builder.lang_dictionary import LangDictionary
 from corpus.dictionary_builder.synonym_finder import SynonymFinder
 
 
 class TestDictBuilder(TestCase):
+    def test_corpus_manager(self):
+        mgr = CorpusFileManager()
+        #cards_en = get_corpus_repository().get_cards_by_lang('en')
+        #mgr.save(LangDictionary('en', cards_en))
+        cards_ru = get_corpus_repository().get_cards_by_lang('ru')
+        mgr.save(LangDictionary('ru', cards_ru))
+        #data = mgr.load('en')
+
     def test_word_neighbours_syn(self):
         cards_en = get_corpus_repository().get_cards_by_lang('en')
         cards_ru = get_corpus_repository().get_cards_by_lang('ru')

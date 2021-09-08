@@ -1,0 +1,13 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+    <div class="container">
+        <h1>Dictionary</h1>
+
+        {% if language %}
+            <h3>Language</h3>
+        {% else %}
+            <p>Select language</p>
+        {%endif %}
+    </div>
+{% endblock %}
