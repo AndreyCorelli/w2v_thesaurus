@@ -24,9 +24,7 @@ class CorpusFileManager:
 
     def save(self, ld: LangDictionary, target_folder: Optional[str] = None) -> None:
         target_path = self.get_file_path(target_folder, ld.lang_code)
-        cards = {'data': [c.__dict__ for c in ld.words]}
-        for d in cards['data']:
-            del d['_sa_instance_state']
+        cards = {'data': [c.to_dict() for c in ld.words]}
         bt_data: bytes = msgpack.packb(cards, use_bin_type=True, use_single_float=True)
         with open(target_path, mode='wb') as f:
             f.write(bt_data)

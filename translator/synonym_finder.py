@@ -64,7 +64,7 @@ class SynonymFinder:
 
         candidate_dist.sort(key=lambda cd: cd[1])
         dst_cards = self.lang_b_cards if a_to_b else self.lang_a_cards
-        dst_words = [dst_cards[id] for id, _ in candidate_dist]
+        dst_words = [dst_cards[id].word for id, _ in candidate_dist]
         result.synonyms = dst_words
         return result
 

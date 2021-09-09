@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 from sqlalchemy import *
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -28,3 +30,9 @@ class WordCard(Base):
 
     def __repr__(self):
         return str(self)
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = self.__dict__
+        if '_sa_instance_state' in d:
+            del d['_sa_instance_state']
+        return d

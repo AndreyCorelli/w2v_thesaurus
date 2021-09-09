@@ -58,7 +58,7 @@ class DictionaryBuilder:
 
             card.vector = v.astype(float)
             card.vector_length = math.sqrt(sum_l)
-            card.vector_variance = math.sqrt(sum_dev / len(v)) / mean_v
+            card.vector_variance = math.sqrt(sum_dev / len(v))  # / mean_v
 
     def _find_neighbours(self):
         part_size = 15000
