@@ -1,7 +1,6 @@
 import math
 from typing import List, Dict, Tuple
 
-from corpus.dictionary_builder.corpus_repository import get_corpus_repository
 from corpus.dictionary_builder.lang_dictionary import LangDictionary
 from corpus.dictionary_builder.word_freq_card import WordFrequencyCard
 from corpus.models import WordCard
@@ -11,7 +10,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 
 class DictionaryBuilder:
-    NEIGHBOURS_COUNT = 10
+    NEIGHBOURS_COUNT = 20
 
     def __init__(self):
         self.sentences: List[List[str]] = []
@@ -29,11 +28,7 @@ class DictionaryBuilder:
         self.cards = list(self.card_by_word.values())
         self._calculate_frequency_uniformity()
         self._calculate_vectors()
-        repo = get_corpus_repository()
-        repo.clear_cards_by_lang(lang_code)
-        repo.insert_cards(self.cards)
         self._find_neighbours()
-        repo.update_neighbours(self.cards)
         return LangDictionary(lang_code, self.cards)
 
     def _calculate_frequency_uniformity(self):
@@ -88,7 +83,7 @@ class DictionaryBuilder:
         for i in range(len(src_vectors)):
             all_neighbours[i].sort(key=lambda v: v[1], reverse=True)
             neib_indx = all_neighbours[i][:self.NEIGHBOURS_COUNT]
-            self.cards[i + start_card].neighbours = [self.cards[ind].id for ind, _ in neib_indx]
+            self.cards[i + start_card].neighbours = [self.cards[ind].word for ind, _ in neib_indx]
 
     @classmethod
     def _get_cosine_distance(cls, a: List[float], b: List[float]):
