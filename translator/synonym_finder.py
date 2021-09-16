@@ -25,13 +25,9 @@ class SynonymFinder:
         self.lang_b_cards = lang_b_cards
         self.a_index_by_word = {lang_a_cards[i].word: i for i in range(len(lang_a_cards))}
         self.b_index_by_word = {lang_b_cards[i].word: i for i in range(len(lang_b_cards))}
-        self.a_index_by_id = {lang_a_cards[i].id: i for i in range(len(lang_a_cards))}
-        self.b_index_by_id = {lang_b_cards[i].id: i for i in range(len(lang_b_cards))}
 
         self.card_a_by_word: Dict[str, WordCard] = {w.word: w for w in lang_a_cards}
         self.card_b_by_word: Dict[str, WordCard] = {w.word: w for w in lang_b_cards}
-        self.card_a_by_id: Dict[int, WordCard] = {w.id: w for w in lang_a_cards}
-        self.card_b_by_id: Dict[int, WordCard] = {w.id: w for w in lang_b_cards}
         self.lang_a_vectors: List[Tuple[float, ...]] = []
         self.lang_b_vectors: List[Tuple[float, ...]] = []
         self._build_vectors()
@@ -53,9 +49,8 @@ class SynonymFinder:
         # find <synonym_count> closest vectors in dst_vectors
         candidate_ids = self._find_closest_n_vectors(src_vectors[src_idx], dst_vectors, synonym_count)
         # get neighbours of the src item
-
-        src_index_by_id = self.a_index_by_id if a_to_b else self.b_index_by_id
-        src_neihgbour_vects = [src_vectors[src_index_by_id[id]] for id in src_card.neighbours]
+        src_index_by_word = self.a_index_by_word if a_to_b else self.b_index_by_word
+        src_neihgbour_vects = [src_vectors[src_index_by_word[w]] for w in src_card.neighbours]
 
         candidate_dist: List[Tuple[int, float]] = []
         for cd_id in candidate_ids:
@@ -74,8 +69,8 @@ class SynonymFinder:
                                          a_to_b: bool) -> float:
         dst_card = self.lang_b_cards[dst_id] if a_to_b else self.lang_a_cards[dst_id]
         dst_vectors = self.lang_b_vectors if a_to_b else self.lang_a_vectors
-        dst_index_by_id = self.b_index_by_id if a_to_b else self.a_index_by_id
-        dst_neihgbour_vects = [dst_vectors[dst_index_by_id[id]] for id in dst_card.neighbours]
+        dst_index_by_word = self.b_index_by_word if a_to_b else self.a_index_by_word
+        dst_neihgbour_vects = [dst_vectors[dst_index_by_word[w]] for w in dst_card.neighbours]
 
         # calculate summary distance between src_neihgbour_vects and dst_neihgbour_vects
         dist = 0

@@ -5,7 +5,7 @@ from translator.synonym_finder import SynonymFinder
 
 
 class TestDictBuilder(TestCase):
-    def debug_word_neighbours_syn(self):
+    def test_word_neighbours_syn(self):
         mgr = CorpusFileManager()
         cards_en = mgr.load('en').words
         cards_ru = mgr.load('ru').words

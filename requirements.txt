@@ -13,7 +13,6 @@ itsdangerous==2.0.1
 Jinja2==3.0.1
 MarkupSafe==2.0.1
 numpy==1.21.2
-pkg_resources==0.0.0
 promise==2.3
 regex==2021.8.21
 Rx==1.6.1
