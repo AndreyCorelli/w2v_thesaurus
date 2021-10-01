@@ -1,8 +1,9 @@
 from typing import Dict
 
-from flask import current_app as app
+from flask import current_app as app, send_from_directory
 from flask import render_template, request
 
+from api.optimization.optimization_track import TRACK_SCORE
 from corpus.dictionary_builder.alphabet import alphabet_by_code
 from corpus.dictionary_builder.corpus_file_manager import CorpusFileManager
 from corpus.dictionary_builder.lang_dictionary import LangDictionary
@@ -19,6 +20,11 @@ def get_dictionary(lang_code: str) -> LangDictionary:
     dct = mgr.load(lang_code)
     DICT_BY_LANG[lang_code] = dct
     return dct
+
+
+#@app.route('/css/<path:path>')
+#def send_js(path):
+#    return send_from_directory('css', path)
 
 
 @app.route('/')
@@ -59,7 +65,7 @@ def dictionary(language: str = 'en'):
     )
 
 
-@app.route('/translate_word', methods = ['POST'])
+@app.route('/translate_word', methods=['POST'])
 def translate_word():
     data = request.json
     word, src_lang, dst_lang = data['word'], data['src_language'], data['target_language']
@@ -73,3 +79,12 @@ def translate_word():
     return {'synonyms': [s for s in synonyms.synonyms],
             'message': synonyms.message,
             'word_card': word_card.to_dict()}
+
+
+@app.route('/optimization_track')
+def optimization_track():
+    tracks = TRACK_SCORE.get_tracks()
+    return render_template(
+        'optimization_track.html',
+        tracks=tracks
+    )

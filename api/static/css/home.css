@@ -22,3 +22,12 @@ nav a {
 h1 {
     margin-top: 0;
 }
+
+input[type=text] {
+    height: 30px;
+}
+
+input[type=button] {
+    padding: 10px;
+}
+

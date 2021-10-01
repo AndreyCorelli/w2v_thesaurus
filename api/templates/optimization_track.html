@@ -1,0 +1,65 @@
+{% extends 'layout.html' %}
+
+{% block header %}
+<script src="https://unpkg.com/soloalert"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1>Optimization</h1>
+        <input type="button" id="btn-try-new" value="+ Try alternative params" />
+        <br/>
+        <table>
+            <tr>
+                <th>Date</th>
+                <th>Score</th>
+                <th>Metaparams</th>
+            </tr>
+            {% for record in tracks %}
+                <tr>
+                    <td>{{record.record_date}}</td>
+                    <td>{{record.score}}</td>
+                    <td>{{record.coeffs}}</td>
+                    <td><a href="#">Apply coeffs</a></td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+{% endblock %}
+
+{% block script %}
+<script>
+    class DictManager {
+        constructor() {
+            let that = this;
+            window.onload = () => {
+                document.getElementById('btn-try-new').addEventListener('click', e => {
+                    that.showNewParamsDlg();
+                });
+            };
+        }
+
+        showNewParamsDlg() {
+            let markup = '<input type="text" id="meta-word-weight" value="0.2, 0.2, 0.2, 0.2, 0.2" />' +
+                '<label for="meta-word-weight">text vector weigths</label>';
+            let that = this;
+            SoloAlert.alert({
+                title: "Try new params",
+                body: "",
+                // success, warning, or, error
+                icon: "",
+                theme: "auto",
+                html: markup,
+                useTransparency: false,
+                onOk: function () { that.applyNewParams(); }
+            });
+        }
+
+        applyNewParams() {
+            let ptrWeights = document.getElementById('meta-word-weight').value;
+            console.log(ptrWeights);
+        }
+    }
+    window.manager = new DictManager();
+</script>
+{% endblock %}
