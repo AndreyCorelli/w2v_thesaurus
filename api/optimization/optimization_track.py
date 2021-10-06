@@ -12,6 +12,13 @@ from corpus.models import WordCard
 from translator.synonym_finder import SynonymFinder
 
 
+class DatetimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        try:
+            return super().default(obj)
+        except TypeError:
+            return str(obj)
+
 @dataclass_json
 @dataclass
 class OptimizationRecord:
@@ -26,6 +33,11 @@ class OptimizationRecord:
 
     def __repr__(self):
         return str(self)
+
+    @classmethod
+    def json_converter(cls, ):
+        if isinstance(o, datetime.datetime):
+            return o.__str__()
 
 
 @dataclass_json
@@ -128,7 +140,7 @@ class OptimizationTrack:
     def _save_tracks(self):
         records = [r.to_dict() for r in self.records]
         with codecs.open(self.default_path, 'w', encoding='utf-8') as fw:
-            fw.write(json.dumps(records))
+            fw.write(json.dumps(records, cls=DatetimeEncoder))
 
     def _ensure_records(self):
         if self.records is not None:
@@ -141,7 +153,7 @@ class OptimizationTrack:
         if not jsn:
             self.records = []
             return
-        raw_records = json.loads(jsn)
+        raw_records = json.loads(jsn, cls=DatetimeEncoder)
         self.records = [OptimizationRecord.from_dict(r) for r in raw_records]
 
 
