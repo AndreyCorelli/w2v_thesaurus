@@ -7,9 +7,9 @@
 {% block content %}
     <div class="container">
         <h1>Optimization</h1>
-        <input type="button" id="btn-try-new" value="+ Try alternative params" />
-        <br/>
-        <table>
+        <a href="#" class="button" id="btn-try-new">+ Try alternative params<a/>
+        <br/> <br/>
+        <table class="table">
             <tr>
                 <th>Date</th>
                 <th>Score</th>
@@ -40,24 +40,45 @@
         }
 
         showNewParamsDlg() {
-            let markup = '<input type="text" id="meta-word-weight" value="0.2, 0.2, 0.2, 0.2, 0.2" />' +
-                '<label for="meta-word-weight">text vector weigths</label>';
+            let metaWeights = {{ weights }};
+            let weightsStr = metaWeights.join(', ');
+            let markup = '<input type="text" id="meta-word-weight" ' +
+                `value="${weightsStr}" />` +
+                '<label for="meta-word-weight">text vector weights</label>';
             let that = this;
             SoloAlert.alert({
-                title: "Try new params",
-                body: "",
+                title: 'Apply and evaluate new params',
+                body: '',
                 // success, warning, or, error
-                icon: "",
-                theme: "auto",
+                icon: '',
+                theme: 'auto',
                 html: markup,
                 useTransparency: false,
-                onOk: function () { that.applyNewParams(); }
+                onOk: () => {that.applyNewParams();}
             });
         }
 
         applyNewParams() {
             let ptrWeights = document.getElementById('meta-word-weight').value;
-            console.log(ptrWeights);
+            let link = '{{ url_for("optimization_apply") }}';
+            let self = this;
+            fetch(link,
+                {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json; charset=utf-8" },
+                    body: JSON.stringify({
+                        'word_weights': ptrWeights
+                    })
+                })
+                .then(res => res.json())
+                .then(response => {
+                    // redirect to evaluating page
+                    window.location.href = '{{ url_for("optimization_evaluate") }}';
+                })
+                .catch(err => {
+                    console.log(err);
+                    alert("Server error occurred, see console for detail.")
+                });
         }
     }
     window.manager = new DictManager();

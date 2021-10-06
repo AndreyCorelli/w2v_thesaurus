@@ -1,16 +1,21 @@
 from dataclasses import dataclass
 import datetime
-from typing import List, Optional
+from typing import List, Optional, Tuple, Dict
 import codecs
 import os
 import json
 
 from dataclasses_json import dataclass_json
 
+from corpus.dictionary_builder.corpus_file_manager import CorpusFileManager
+from corpus.models import WordCard
+from translator.synonym_finder import SynonymFinder
+
 
 @dataclass_json
 @dataclass
 class OptimizationRecord:
+    # TODO: Object of type datetime is not JSON serializable
     record_date: datetime.datetime = None
     score: float = None
     coeffs: List[float] = None
@@ -23,10 +28,52 @@ class OptimizationRecord:
         return str(self)
 
 
+@dataclass_json
+@dataclass
+class EvaluationSample:
+    word: str = None
+    translations: List[str] = None
+    score: int = 0
+
+    def __str__(self):
+        return ', '.join([f'{w}: {tr}' for w, tr in self.translations[:3]]) + ' ...'
+
+    def __repr__(self):
+        return str(self)
+
+    @property
+    def translations_str(self) -> str:
+        return ' '.join(self.translations)
+
+
+@dataclass_json
+@dataclass
+class EvaluationSampleSet:
+    words_by_lang: Dict[Tuple[str, str], List[EvaluationSample]] = None
+
+    def __str__(self):
+        return ', '.join([f'{k}: {len(self.words_by_lang[k])}'
+                          for k in self.words_by_lang])
+
+    def __repr__(self):
+        return str(self)
+
+    @property
+    def score(self) -> Optional[float]:
+        if not self.words_by_lang:
+            return None
+        score = 0.0
+        for w_lst in self.words_by_lang.values():
+            score += sum([wrd.score for wrd in w_lst])
+        return score
+
+
 class OptimizationTrack:
     def __init__(self):
-        self.default_path = os.path.dirname(os.path.realpath(__file__))
-        self.default_path = os.path.join(self.default_path, '..', '..', 'data', 'optimization.json')
+        self.own_path = os.path.dirname(os.path.realpath(__file__))
+        self.default_path = os.path.join(self.own_path, '..', '..', 'data', 'optimization', 'optimization.json')
+        self.sample_path = os.path.join(self.own_path, '..', '..', 'data', 'optimization',
+                                        '../../data/optimization/test_samples.txt')
         self.records: Optional[List[OptimizationRecord]] = None
 
     def get_tracks(self) -> List[OptimizationRecord]:
@@ -37,6 +84,46 @@ class OptimizationTrack:
         self._ensure_records()
         self.records.append(record)
         self._save_tracks()
+
+    def prepare_sample_set(self) -> EvaluationSampleSet:
+        with open(self.sample_path) as f:
+            raw = json.load(f)
+        st = EvaluationSampleSet()
+        st.words_by_lang = {}
+        cards_by_lang: Dict[str, List[WordCard]] = {}
+        finder_by_langs: Dict[Tuple[str, str], SynonymFinder] = {}
+        mgr = CorpusFileManager()
+
+        for record in raw:
+            src_lang, dst_lang = record['src_lang'], record['dest_lang']
+            key = (src_lang, dst_lang)
+            a2b = True
+            finder = finder_by_langs.get(key)
+            if not finder:
+                a2b = False
+                finder = finder_by_langs.get((dst_lang, src_lang))
+            if not finder:
+                a2b = True
+                cards_src = cards_by_lang.get(src_lang)
+                if not cards_src:
+                    cards_src = mgr.load(src_lang).words
+                    cards_by_lang[src_lang] = cards_src
+                    cards_src = cards_by_lang.get(src_lang)
+                cards_dst = cards_by_lang.get(dst_lang)
+                if not cards_dst:
+                    cards_dst = mgr.load(dst_lang).words
+                    cards_by_lang[dst_lang] = cards_dst
+                finder = SynonymFinder(cards_src, cards_dst)
+                finder_by_langs[key] = finder
+
+            samples = []
+            for w in record['words'].split(' '):
+                sample = EvaluationSample()
+                sample.translations = finder.find_synonyms(a2b, w).synonyms
+                sample.word = w
+                samples.append(sample)
+            st.words_by_lang[key] = samples
+        return st
 
     def _save_tracks(self):
         records = [r.to_dict() for r in self.records]

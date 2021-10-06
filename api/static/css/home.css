@@ -31,3 +31,38 @@ input[type=button] {
     padding: 10px;
 }
 
+table.table {
+  border: 1px solid black;
+}
+
+table.table td {
+  padding-left: 6px;
+  padding-right: 6px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+table.table th {
+  font-weight: bold;
+  text-align: left;
+}
+
+table.table tr:nth-child(even) {
+  background: #E3E3E3;
+}
+
+a.button {
+  font: bold 12px Arial;
+  text-decoration: none;
+  background-color: #E4E4E4;
+  color: #333333;
+  padding: 10px;
+  border-top: 1px solid #CCCCCC;
+  border-right: 1px solid #333333;
+  border-bottom: 1px solid #333333;
+  border-left: 1px solid #CCCCCC;
+}
+
+a.button:hover {
+  background-color: #EDEDED;
+}

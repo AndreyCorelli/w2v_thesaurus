@@ -1,0 +1,89 @@
+{% extends 'layout.html' %}
+
+{% block header %}
+<script src="https://unpkg.com/soloalert"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1>Evaluate translation</h1>
+        <br/>
+        {% for key, value in sample_set.words_by_lang.items() %}
+            <h3>{{ key[0] }} -&gt; {{ key[1] }}</h3>
+            <table class="table">
+                <tr>
+                    <th>Word</th>
+                    <th>Translations</th>
+                    <th>Score</th>
+                </tr>
+                {% for i in range(value|length) %}
+                    <tr>
+                        <td>{{ value[i].word }}</td>
+                        <td>{{ value[i].translations_str }}</td>
+                        <td style="white-space: nowrap">
+                            <input type="radio" name="score_{{ i }}" id="score_hi_{{ i }}" value="3"/>
+                            <label for="score_hi_{{ i }}">3</label>
+                            <input type="radio" name="score_{{ i }}" id="score_low_{{ i }}" value="1"/>
+                            <label for="score_low_{{ i }}">1</label>
+                            <input type="radio" name="score_{{ i }}" id="score_0_{{ i }}" value="0"/>
+                            <label for="score_0_{{ i }}">0</label>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        {% endfor %}
+        <br/>
+        <a href="#" class="button" id="btn-save">Finish assessment <a/>
+    </div>
+{% endblock %}
+
+{% block script %}
+<script>
+    class PageManager {
+        constructor() {
+            let that = this;
+            window.onload = () => {
+                document.getElementById('btn-save').addEventListener('click', e => {
+                    that.saveEvalResults();
+                });
+            };
+        }
+
+        saveEvalResults() {
+            let totalScore = 0;
+            let allSet = true;
+            for (let i = 0; i < 100000; i++) {
+                if (!document.getElementById(`score_${i}`)) break;
+                let score = document.querySelector('input[`score_${i}`]:checked').value;
+                if (score === null) {
+                    allSet = false;
+                    return;
+                }
+                totalScore += score;
+            }
+            print(`Saving total score of ${totalScore}`);
+
+            let link = '{{ url_for("optimization_eval_save") }}';
+            let self = this;
+            fetch(link,
+                {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json; charset=utf-8" },
+                    body: JSON.stringify({
+                        'score': totalScore
+                    })
+                })
+                .then(res => res.json())
+                .then(response => {
+                    // redirect to optimizations summary page
+                    window.location.href = '{{ url_for("optimization_apply") }}';
+                })
+                .catch(err => {
+                    console.log(err);
+                    alert("Server error occurred, see console for detail.")
+                }); // fetch
+        } // save eval results
+    }
+    window.manager = new PageManager();
+</script>
+{% endblock %}

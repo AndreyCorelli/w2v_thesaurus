@@ -1,15 +1,19 @@
+import datetime
 from typing import Dict
+import regex as re
 
-from flask import current_app as app, send_from_directory
+from flask import current_app as app
 from flask import render_template, request
 
-from api.optimization.optimization_track import TRACK_SCORE
+from api.optimization.optimization_track import TRACK_SCORE, OptimizationRecord
 from corpus.dictionary_builder.alphabet import alphabet_by_code
 from corpus.dictionary_builder.corpus_file_manager import CorpusFileManager
 from corpus.dictionary_builder.lang_dictionary import LangDictionary
+from translator.metaparams import METAPARAMS
 from translator.synonym_finder import SynonymFinder
 
 DICT_BY_LANG: Dict[str, LangDictionary] = {}
+REG_NUMBER = re.compile(r'[+-]?([0-9]*[.])?[0-9]+')
 
 
 def get_dictionary(lang_code: str) -> LangDictionary:
@@ -86,5 +90,39 @@ def optimization_track():
     tracks = TRACK_SCORE.get_tracks()
     return render_template(
         'optimization_track.html',
-        tracks=tracks
+        tracks=tracks,
+        weights=METAPARAMS.word_vector_weights
     )
+
+
+@app.route('/optimization_apply', methods=['POST'])
+def optimization_apply():
+    # apply & save new meta-params for similar words search
+    data = request.json
+    word_weight_str = data['word_weights']
+    word_weights = [float(m.group()) for m in REG_NUMBER.finditer(word_weight_str)]
+    METAPARAMS.word_vector_weights = word_weights
+    METAPARAMS.save()
+    return {'status': 'ok'}
+
+
+@app.route('/optimization_evaluate')
+def optimization_evaluate():
+    sample_set = TRACK_SCORE.prepare_sample_set()
+    return render_template(
+        'optimization_evaluate.html',
+        sample_set=sample_set
+    )
+
+
+@app.route('/optimization_eval_save', methods=['POST'])
+def optimization_eval_save():
+    # save evaluated results
+    data = request.json
+    score = data['score']
+    track = OptimizationRecord()
+    track.score = score
+    track.coeffs = METAPARAMS.word_vector_weights
+    track.record_date = datetime.datetime.now()
+    TRACK_SCORE.add_record(track)
+    return {'status': 'ok'}

@@ -7,7 +7,7 @@ from dataclasses_json import dataclass_json
 
 
 MODULE_PATH = os.path.dirname(os.path.realpath(__file__))
-MODULE_PATH = os.path.join(MODULE_PATH, '..', '..', 'data', 'metaparams.txt')
+MODULE_PATH = os.path.join(MODULE_PATH, '..', 'data', 'metaparams.txt')
 
 
 @dataclass_json
@@ -15,8 +15,11 @@ MODULE_PATH = os.path.join(MODULE_PATH, '..', '..', 'data', 'metaparams.txt')
 class Metaparams:
     word_vector_weights: List[float] = None
 
-    def __init__(self):
-        self.word_vector_weights = [1.0 / 5] * 5
+    @classmethod
+    def create_default(cls) -> 'Metaparams':
+        ptrs = Metaparams()
+        ptrs.word_vector_weights = [1.0 / 5] * 5
+        return ptrs
 
     def save(self):
         with codecs.open(MODULE_PATH, 'w', encoding='utf-8') as fw:
@@ -25,11 +28,11 @@ class Metaparams:
     @classmethod
     def load(cls) -> 'Metaparams':
         if not os.path.isfile(MODULE_PATH):
-            return Metaparams()
-        with codecs.open(MODULE_PATH, 'w', encoding='utf-8') as fr:
+            return Metaparams.create_default()
+        with codecs.open(MODULE_PATH, 'r', encoding='utf-8') as fr:
             jsn = fr.read()
         if not jsn:
-            return Metaparams()
+            return Metaparams.create_default()
         return Metaparams.from_json(jsn)
 
 

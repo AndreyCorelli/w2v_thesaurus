@@ -3,6 +3,7 @@ import numpy as np
 
 from corpus.dictionary_builder.sorted_items import SortedItems
 from corpus.models import WordCard
+from translator.metaparams import METAPARAMS
 
 
 class SynonymsFound:
@@ -102,7 +103,8 @@ class SynonymFinder:
 
     @classmethod
     def _build_word_vector(cls, card: WordCard) -> Tuple[float, ...]:
-        return card.vector_length, card.vector_variance, card.frequency, card.frequency_rel_rank, card.non_uniformity
+        v = (card.vector_length, card.vector_variance, card.frequency, card.frequency_rel_rank, card.non_uniformity)
+        return tuple(v[i] * METAPARAMS.word_vector_weights[i] for i in range(len(v)))
 
     @classmethod
     def _normalize_vectors(cls, lang_vectors: List[Tuple[float, ...]]):
