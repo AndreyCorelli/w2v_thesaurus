@@ -19,6 +19,16 @@ class DatetimeEncoder(json.JSONEncoder):
         except TypeError:
             return str(obj)
 
+
+def date_hook(json_dict):
+    for (key, value) in json_dict.items():
+        try:
+            json_dict[key] = datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
+        except:
+            pass
+    return json_dict
+
+
 @dataclass_json
 @dataclass
 class OptimizationRecord:
@@ -153,7 +163,7 @@ class OptimizationTrack:
         if not jsn:
             self.records = []
             return
-        raw_records = json.loads(jsn, cls=DatetimeEncoder)
+        raw_records = json.loads(jsn)  # , object_hook=date_hook)
         self.records = [OptimizationRecord.from_dict(r) for r in raw_records]
 
 
