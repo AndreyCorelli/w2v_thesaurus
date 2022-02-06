@@ -1,1 +1,1 @@
-{"word_vector_weights": [0.05, 0.2, 0.05, 0.2, 0.2]}
+{"word_vector_weights": [0.05, 0.2, 0.05, 0.2, 0.2, 0.2]}

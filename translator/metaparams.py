@@ -13,12 +13,13 @@ MODULE_PATH = os.path.join(MODULE_PATH, '..', 'data', 'metaparams.txt')
 @dataclass_json
 @dataclass
 class Metaparams:
+    VECTOR_LEN = 6
     word_vector_weights: List[float] = None
 
     @classmethod
     def create_default(cls) -> 'Metaparams':
         ptrs = Metaparams()
-        ptrs.word_vector_weights = [1.0 / 5] * 5
+        ptrs.word_vector_weights = [1.0 / cls.VECTOR_LEN] * cls.VECTOR_LEN
         return ptrs
 
     def save(self):

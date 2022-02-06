@@ -8,6 +8,8 @@ class WordFrequencyCard:
         self.frequency = 0
         self.nu: float = 0
         self.rank = 0
+        self.rel_len: float = 0
+        self.prob_repeats: float = 0
 
         self.distances: List[int] = []
         self.last_index = -1
@@ -23,19 +25,27 @@ class WordFrequencyCard:
         wrd_len = len(words)
         wrd_cards = {w: WordFrequencyCard(w) for w in set(words)}
         index = 0
+        total_w_len = 0
+        last_w = ''
         for w in words:
             card = wrd_cards[w]
+            card.rel_len = len(w)
+            total_w_len += card.rel_len
             card.frequency = card.frequency + 1
             if card.last_index >= 0:
                 card.distances.append(index - card.last_index)
             card.last_index = index
             index += 1
+            if last_w == w:
+                card.prob_repeats += 1
         for card in wrd_cards.values():
             card.distances.append(len(words) - card.last_index)
 
         freq_set = set()
         for w in wrd_cards:
             card = wrd_cards[w]
+            card.rel_len = card.rel_len / total_w_len
+            card.prob_repeats = card.prob_repeats / card.frequency
             freq_set.add(card.frequency)
             if card.frequency > 1:
                 avg_dist = len(words) / card.frequency

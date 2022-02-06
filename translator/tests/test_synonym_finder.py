@@ -14,3 +14,6 @@ class TestDictBuilder(TestCase):
         s_i = sf.find_synonyms(True, 'i')
         s_go = sf.find_synonyms(False, 'иду')
         s_me = sf.find_synonyms(False, 'мне')
+        s_none = sf.find_synonyms(False, 'несуществующееслово')
+        assert not s_none.synonyms
+        print(f"{s_god}\n{s_i}\n{s_go}\n{s_me}")

@@ -35,6 +35,8 @@ class DictionaryBuilder:
         f_cards = WordFrequencyCard.calc_stat(self.words)
         for card in self.cards:
             f_card = f_cards[card.word]
+            card.rel_length = f_card.rel_len
+            card.prob_repeats = f_card.prob_repeats
             card.frequency = f_card.frequency
             card.frequency_rank = f_card.rank
             card.frequency_rel_rank = f_card.rank / len(self.card_by_word)
@@ -84,14 +86,3 @@ class DictionaryBuilder:
             all_neighbours[i].sort(key=lambda v: v[1], reverse=True)
             neib_indx = all_neighbours[i][:self.NEIGHBOURS_COUNT]
             self.cards[i + start_card].neighbours = [self.cards[ind].word for ind, _ in neib_indx]
-
-    @classmethod
-    def _get_cosine_distance(cls, a: List[float], b: List[float]):
-        ma, mb, ab = 0, 0, 0
-        for i in range(len(a)):
-            ab += a[i] * b[i]
-            ma += a[i] * a[i]
-            mb += b[i] * b[i]
-
-        denom = math.sqrt(ma) * math.sqrt(mb)
-        return ab / denom if denom > 0 else 0

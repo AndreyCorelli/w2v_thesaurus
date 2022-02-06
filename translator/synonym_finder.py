@@ -1,9 +1,10 @@
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 import numpy as np
 
 from corpus.dictionary_builder.sorted_items import SortedItems
 from corpus.models import WordCard
 from translator.metaparams import METAPARAMS
+from translator.synonym_finder_params import SynonymFinderParams
 
 
 class SynonymsFound:
@@ -19,36 +20,64 @@ class SynonymsFound:
 
 
 class SynonymFinder:
+    DEFAULT_SEARCH_PARAMS = SynonymFinderParams()
+
     def __init__(self,
                  lang_a_cards: List[WordCard],
                  lang_b_cards: List[WordCard]):
         self.lang_a_cards = lang_a_cards
         self.lang_b_cards = lang_b_cards
+
+        # { word[i].word: i, ... }
         self.a_index_by_word = {lang_a_cards[i].word: i for i in range(len(lang_a_cards))}
         self.b_index_by_word = {lang_b_cards[i].word: i for i in range(len(lang_b_cards))}
 
+        # { word: word_card, ... }
         self.card_a_by_word: Dict[str, WordCard] = {w.word: w for w in lang_a_cards}
         self.card_b_by_word: Dict[str, WordCard] = {w.word: w for w in lang_b_cards}
+
+        # [word[0].vector, ..., word[N-1].vector]
         self.lang_a_vectors: List[Tuple[float, ...]] = []
         self.lang_b_vectors: List[Tuple[float, ...]] = []
-        self._build_vectors()
+
+        # [word[0].is_stem, ... ]
+        self.a_stem_flags: List[bool] = [c.is_stem() for c in lang_a_cards]
+        self.b_stem_flags: List[bool] = [c.is_stem() for c in lang_b_cards]
+
+        self._build_world_2_vector_maps()
+
+    def _get_word_stem(self, a_to_b: bool, wrd: str) -> Optional[str]:
+        words = self.card_a_by_word if a_to_b else self.card_b_by_word
+        card = words.get(wrd)
+        return card.word if card else None
 
     def find_synonyms(self,
                       a_to_b: bool = True,
                       wrd: str = '',
-                      synonym_count: int = 20) -> SynonymsFound:
+                      search_params: SynonymFinderParams = None) -> SynonymsFound:
+        search_params = search_params or self.DEFAULT_SEARCH_PARAMS
+
         result = SynonymsFound()
+        if search_params.find_for_word_stem:
+            wrd = self._get_word_stem(a_to_b, wrd)
+            if not wrd:
+                result.message = 'Source word not found'
+                return result
+
         src_idx = self.a_index_by_word.get(wrd) if a_to_b else self.b_index_by_word.get(wrd)
-        if src_idx < 0:
+        if src_idx is None:
             result.message = 'Source word not found'
             return result
 
         src_card = self.lang_a_cards[src_idx] if a_to_b else self.lang_b_cards[src_idx]
         src_vectors = self.lang_a_vectors if a_to_b else self.lang_b_vectors
         dst_vectors = self.lang_b_vectors if a_to_b else self.lang_a_vectors
+        stem_flags = self.b_stem_flags if a_to_b else self.a_stem_flags
 
         # find <synonym_count> closest vectors in dst_vectors
-        candidate_ids = self._find_closest_n_vectors(src_vectors[src_idx], dst_vectors, synonym_count)
+        candidate_ids = self._find_n_closest_words_by_vectors(
+            src_vectors[src_idx], dst_vectors, search_params.synonym_count,
+            True, stem_flags)
         # get neighbours of the src item
         src_index_by_word = self.a_index_by_word if a_to_b else self.b_index_by_word
         src_neihgbour_vects = [src_vectors[src_index_by_word[w]] for w in src_card.neighbours]
@@ -81,20 +110,26 @@ class SynonymFinder:
             dist += np.linalg.norm(d)
         return dist
 
-    def _find_closest_n_vectors(self,
-                                src_vector: Tuple[float, ...],
-                                dst_vectors: List[Tuple[float, ...]],
-                                max_items: int) -> List[int]:
+    def _find_n_closest_words_by_vectors(self,
+                                         src_vector: Tuple[float, ...],
+                                         dst_vectors: List[Tuple[float, ...]],
+                                         max_items: int,
+                                         check_stems_only: bool = False,
+                                         stem_flags: Optional[List[bool]] = None) -> List[int]:
+        penalty_distance = 10**6
         sa = SortedItems(max_items)
         for i in range(len(dst_vectors)):
-            dv = dst_vectors[i]
-            d = np.array([src_vector[j] - dv[j] for j in range(len(src_vector))])
-            dist = np.linalg.norm(d)
+            if check_stems_only and not stem_flags[i]:
+                dist = penalty_distance
+            else:
+                dv = dst_vectors[i]
+                d = np.array([src_vector[j] - dv[j] for j in range(len(src_vector))])
+                dist = np.linalg.norm(d)
             sa.update(dist, i)
 
         return [it[0] for it in sa.items]
 
-    def _build_vectors(self):
+    def _build_world_2_vector_maps(self):
         self.lang_a_vectors = [self._build_word_vector(w) for w in self.lang_a_cards]
         self.lang_b_vectors = [self._build_word_vector(w) for w in self.lang_b_cards]
         # normalize vectors: let each coordinate varies in [0..1]
@@ -103,7 +138,9 @@ class SynonymFinder:
 
     @classmethod
     def _build_word_vector(cls, card: WordCard) -> Tuple[float, ...]:
-        v = (card.vector_length, card.vector_variance, card.frequency, card.frequency_rel_rank, card.non_uniformity)
+        v = (card.vector_length, card.vector_variance, card.frequency,
+             card.non_uniformity,
+             card.rel_length, card.prob_repeats)
         return tuple(v[i] * METAPARAMS.word_vector_weights[i] for i in range(len(v)))
 
     @classmethod
