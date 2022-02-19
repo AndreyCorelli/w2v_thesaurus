@@ -19,3 +19,7 @@ ENV/
 **/.vs_code/*
 **/.vscode/*
 **/samples
+
+# data - large files
+data/dictionaries/*.msgpack
+data/dictionaries_nltk/*.msgpack
