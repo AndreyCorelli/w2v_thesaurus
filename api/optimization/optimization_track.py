@@ -8,6 +8,7 @@ import json
 from dataclasses_json import dataclass_json
 
 from corpus.dictionary_builder.corpus_file_manager import CorpusFileManager
+from corpus.dictionary_builder.lang_dictionary import LangDictionary
 from corpus.models import WordCard
 from translator.synonym_finder import SynonymFinder
 
@@ -45,7 +46,7 @@ class OptimizationRecord:
         return str(self)
 
     @classmethod
-    def json_converter(cls, ):
+    def json_converter(cls, o):
         if isinstance(o, datetime.datetime):
             return o.__str__()
 
@@ -135,7 +136,9 @@ class OptimizationTrack:
                 if not cards_dst:
                     cards_dst = mgr.load(dst_lang).words
                     cards_by_lang[dst_lang] = cards_dst
-                finder = SynonymFinder(cards_src, cards_dst)
+                finder = SynonymFinder(
+                    LangDictionary(src_lang, cards_src),
+                    LangDictionary(dst_lang, cards_dst))
                 finder_by_langs[key] = finder
 
             samples = []

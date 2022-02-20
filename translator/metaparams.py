@@ -13,7 +13,7 @@ MODULE_PATH = os.path.join(MODULE_PATH, '..', 'data', 'metaparams.txt')
 @dataclass_json
 @dataclass
 class Metaparams:
-    VECTOR_LEN = 6
+    VECTOR_LEN = 7
     word_vector_weights: List[float] = None
 
     @classmethod

@@ -32,7 +32,7 @@ class TextTranslator:
         rdr = CorpusReader()
         rdr.setup_reader(self.src_lang_code, src_encoding, text_processor)
         self.words = rdr.split_text_words(file_text)
-        sf = SynonymFinder(self.dict_src.words, self.dict_dst.words)
+        sf = SynonymFinder(self.dict_src, self.dict_dst)
 
         for wrd, start, end in self.words:
             sn = self.synonyms.get(wrd)

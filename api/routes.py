@@ -78,7 +78,7 @@ def translate_word():
     if not word_card:
         return {'synonyms': [], 'message': 'Word was not found', 'word_card': None}
 
-    sf = SynonymFinder(dc_src.words, dc_dst.words)
+    sf = SynonymFinder(dc_src, dc_dst)
     synonyms = sf.find_synonyms(True, word)
     return {'synonyms': [s for s in synonyms.synonyms],
             'message': synonyms.message,

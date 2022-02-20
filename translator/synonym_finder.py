@@ -1,10 +1,11 @@
 from typing import List, Dict, Tuple, Optional
 import numpy as np
 
+from corpus.dictionary_builder.lang_dictionary import LangDictionary
 from corpus.dictionary_builder.sorted_items import SortedItems
 from corpus.models import WordCard
-from translator.metaparams import METAPARAMS
 from translator.synonym_finder_params import SynonymFinderParams
+from translator.word_vectorizer import WordVectorizer
 
 
 class SynonymsFound:
@@ -23,10 +24,15 @@ class SynonymFinder:
     DEFAULT_SEARCH_PARAMS = SynonymFinderParams()
 
     def __init__(self,
-                 lang_a_cards: List[WordCard],
-                 lang_b_cards: List[WordCard]):
-        self.lang_a_cards = lang_a_cards
-        self.lang_b_cards = lang_b_cards
+                 dict_a: LangDictionary,
+                 dict_b: LangDictionary):
+        lang_a_cards = dict_a.words
+        lang_b_cards = dict_b.words
+
+        self.dict_a = dict_a
+        self.dict_b = dict_b
+        self.lang_a_cards = dict_a.words
+        self.lang_b_cards = dict_b.words
 
         # { word[i].word: i, ... }
         self.a_index_by_word = {lang_a_cards[i].word: i for i in range(len(lang_a_cards))}
@@ -130,33 +136,6 @@ class SynonymFinder:
         return [it[0] for it in sa.items]
 
     def _build_world_2_vector_maps(self):
-        self.lang_a_vectors = [self._build_word_vector(w) for w in self.lang_a_cards]
-        self.lang_b_vectors = [self._build_word_vector(w) for w in self.lang_b_cards]
-        # normalize vectors: let each coordinate varies in [0..1]
-        self._normalize_vectors(self.lang_a_vectors)
-        self._normalize_vectors(self.lang_b_vectors)
-
-    @classmethod
-    def _build_word_vector(cls, card: WordCard) -> Tuple[float, ...]:
-        v = (card.vector_length, card.vector_variance, card.frequency,
-             card.non_uniformity,
-             card.rel_length, card.prob_repeats)
-        return tuple(v[i] * METAPARAMS.word_vector_weights[i] for i in range(len(v)))
-
-    @classmethod
-    def _normalize_vectors(cls, lang_vectors: List[Tuple[float, ...]]):
-        first_v = lang_vectors[0]
-        # find min and max for each column
-        min_max = [(v, v, 0) for v in first_v]
-        for v in lang_vectors:
-            for i in range(len(v)):
-                c = v[i]
-                mi, ma, _ = min_max[i]
-                min_max[i] = min(mi, c), max(ma, c), 0
-        min_max = [(mi, ma, ma - mi if ma != mi else 1) for mi, ma, _r in min_max]
-
-        # scale each value
-        for idx in range(len(lang_vectors)):
-            v = lang_vectors[idx]
-            v = [(v[i] - min_max[i][0]) / min_max[i][2] for i in range(len(min_max))]
-            lang_vectors[idx] = v
+        vectorizer = WordVectorizer()
+        self.lang_a_vectors = vectorizer.vectorize_words(self.dict_a)
+        self.lang_b_vectors = vectorizer.vectorize_words(self.dict_b)
