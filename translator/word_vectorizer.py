@@ -9,7 +9,7 @@ from translator.metaparams import METAPARAMS
 class WordVectorizer:
     # the char is "rare" if it occurs less than
     # (text len in characters) / (alphabet len) * THRESHOLD_CHAR_SHARE
-    THRESHOLD_CHAR_SHARE = 0.025
+    THRESHOLD_CHAR_SHARE = 0.05
 
     def __init__(self):
         self.rare_characters: List[str] = []
@@ -52,7 +52,7 @@ class WordVectorizer:
 
         threshold = total_chars / len(chars_list) * self.THRESHOLD_CHAR_SHARE
         self.rare_characters.append(chars_list[0][0])
-        if chars_list[1][1] > threshold:
+        if chars_list[1][1] < threshold:
             self.rare_characters.append(chars_list[1][0])
 
     @classmethod
