@@ -34,7 +34,7 @@ class StemFinderOptimizer:
         alphabet = alphabet_by_code[self.lang_dict.lang_code]
 
         root_finder = StatisticsDictionaryWordStemFinder(alphabet, self.lang_dict, 1)
-        root_finder.find_stems()
+        root_finder.find_stems_in_dictionary()
         self.orig_stems = {c.word: c.stem for c in self.lang_dict.words}
         return self._do_optimize(root_finder)
 
@@ -47,7 +47,7 @@ class StemFinderOptimizer:
                 self.optimize_params.min_quantile,
                 self.optimize_params.max_quantile,
                 self.optimize_params.quantile_step):
-            root_finder.word_2_root_distance_quantile = quantile
+            root_finder.word_2_stem_distance_quantile = quantile
             root_finder.filter_possible_roots()
             precision = self._calculate_precision()
             if best_precision is None or precision > best_precision:

@@ -46,16 +46,7 @@ class SynonymFinder:
         self.lang_a_vectors: List[Tuple[float, ...]] = []
         self.lang_b_vectors: List[Tuple[float, ...]] = []
 
-        # [word[0].is_stem, ... ]
-        self.a_stem_flags: List[bool] = [c.is_stem() for c in lang_a_cards]
-        self.b_stem_flags: List[bool] = [c.is_stem() for c in lang_b_cards]
-
         self._build_world_2_vector_maps()
-
-    def _get_word_stem(self, a_to_b: bool, wrd: str) -> Optional[str]:
-        words = self.card_a_by_word if a_to_b else self.card_b_by_word
-        card = words.get(wrd)
-        return card.word if card else None
 
     def find_synonyms(self,
                       a_to_b: bool = True,
@@ -64,34 +55,29 @@ class SynonymFinder:
         search_params = search_params or self.DEFAULT_SEARCH_PARAMS
 
         result = SynonymsFound()
-        if search_params.find_for_word_stem:
-            wrd = self._get_word_stem(a_to_b, wrd)
-            if not wrd:
-                result.message = 'Source word not found'
-                return result
+        wrd = self._get_word_stem(a_to_b, wrd)
+        if not wrd:
+            result.message = 'Source word not found'
+            return result
 
         src_idx = self.a_index_by_word.get(wrd) if a_to_b else self.b_index_by_word.get(wrd)
         if src_idx is None:
             result.message = 'Source word not found'
             return result
 
-        src_card = self.lang_a_cards[src_idx] if a_to_b else self.lang_b_cards[src_idx]
         src_vectors = self.lang_a_vectors if a_to_b else self.lang_b_vectors
         dst_vectors = self.lang_b_vectors if a_to_b else self.lang_a_vectors
-        stem_flags = self.b_stem_flags if a_to_b else self.a_stem_flags
 
         # find <synonym_count> closest vectors in dst_vectors
         candidate_ids = self._find_n_closest_words_by_vectors(
-            src_vectors[src_idx], dst_vectors, search_params.synonym_count,
-            True, stem_flags)
-        # get neighbours of the src item
-        src_index_by_word = self.a_index_by_word if a_to_b else self.b_index_by_word
-        src_neihgbour_vects = [src_vectors[src_index_by_word[w]] for w in src_card.neighbours]
+            src_vectors[src_idx], dst_vectors, search_params.synonym_count)
 
         candidate_dist: List[Tuple[int, float]] = []
-        for cd_id in candidate_ids:
-            dst_nb_dist = self._get_distance_between_neighbours(src_neihgbour_vects, cd_id, a_to_b)
-            candidate_dist.append((cd_id, dst_nb_dist))
+        for candidate_id in candidate_ids:
+            dst_nb_dist = self._get_distance_between_neighbours_iter(
+                search_params.depth, src_idx, candidate_id, a_to_b,
+                1, search_params)
+            candidate_dist.append((candidate_id, dst_nb_dist))
 
         candidate_dist.sort(key=lambda cd: cd[1])
         dst_cards = self.lang_b_cards if a_to_b else self.lang_a_cards
@@ -99,38 +85,75 @@ class SynonymFinder:
         result.synonyms = dst_words
         return result
 
-    def _get_distance_between_neighbours(self,
-                                         src_neihgbour_vects: List[Tuple[float, ...]],
-                                         dst_id: int,
-                                         a_to_b: bool) -> float:
-        dst_card = self.lang_b_cards[dst_id] if a_to_b else self.lang_a_cards[dst_id]
+    def _get_word_stem(self, a_to_b: bool, wrd: str) -> Optional[str]:
+        ld = self.dict_a if a_to_b else self.dict_b
+        return ld.word_to_stem.get(wrd)
+
+    def _get_distance_between_neighbours_iter(
+            self,
+            iterations_left: int,
+            src_word_index: int,
+            dst_word_index: int,
+            a_to_b: bool,
+            weight_multiplier: float,
+            search_params: SynonymFinderParams = None) -> float:
+        # TODO: neighbours count may not be the same
+        src_card = self.lang_a_cards[src_word_index] if a_to_b else self.lang_b_cards[src_word_index]
+        dst_card = self.lang_b_cards[dst_word_index] if a_to_b else self.lang_a_cards[dst_word_index]
         dst_vectors = self.lang_b_vectors if a_to_b else self.lang_a_vectors
         dst_index_by_word = self.b_index_by_word if a_to_b else self.a_index_by_word
-        dst_neihgbour_vects = [dst_vectors[dst_index_by_word[w]] for w in dst_card.neighbours]
+
+        dst_neihgbour_indis = [dst_index_by_word[w] for w in dst_card.neighbours]
+        dst_neihgbour_vects = [dst_vectors[ind] for ind in dst_neihgbour_indis]
+        src_vectors = self.lang_a_vectors if a_to_b else self.lang_b_vectors
+        src_index_by_word = self.a_index_by_word if a_to_b else self.b_index_by_word
+
+        src_neihgbour_indis = [src_index_by_word[w] for w in src_card.neighbours]
+        src_neihgbour_vects = [src_vectors[ind] for ind in src_neihgbour_indis]
 
         # calculate summary distance between src_neihgbour_vects and dst_neihgbour_vects
         dist = 0
         for i in range(len(src_neihgbour_vects)):
-            vs, vd = src_neihgbour_vects[i], dst_neihgbour_vects[i]
-            d = np.array([vs[j] - vd[j] for j in range(len(vs))])
-            dist += np.linalg.norm(d)
+            # for each src word neighbour we calculate the distance
+            # to the closest candidate's neighbour
+            min_dist, min_index = -1, -1
+            for j in range(len(dst_neihgbour_vects)):
+                vs, vd = src_neihgbour_vects[i], dst_neihgbour_vects[j]
+                d = self._get_vector_distance(vd, vs)
+
+                if min_dist < 0 or min_dist > d:
+                    min_dist = d
+                    min_index = j
+            dist += min_dist / len(src_neihgbour_vects) * weight_multiplier
+
+            if iterations_left:
+                dist += self._get_distance_between_neighbours_iter(
+                    iterations_left - 1,
+                    src_neihgbour_indis[i],
+                    dst_neihgbour_indis[min_index],
+                    a_to_b,
+                    weight_multiplier * search_params.depth_weight_multiplier,
+                    search_params
+                )
+
         return dist
 
-    def _find_n_closest_words_by_vectors(self,
-                                         src_vector: Tuple[float, ...],
-                                         dst_vectors: List[Tuple[float, ...]],
-                                         max_items: int,
-                                         check_stems_only: bool = False,
-                                         stem_flags: Optional[List[bool]] = None) -> List[int]:
-        penalty_distance = 10**6
+    @classmethod
+    def _get_vector_distance(cls, vd, vs):
+        d_v = np.array([vs[k] - vd[k] for k in range(len(vs))])
+        d = np.linalg.norm(d_v)
+        return d
+
+    def _find_n_closest_words_by_vectors(
+            self,
+            src_vector: Tuple[float, ...],
+            dst_vectors: List[Tuple[float, ...]],
+            max_items: int) -> List[int]:
         sa = SortedItems(max_items)
         for i in range(len(dst_vectors)):
-            if check_stems_only and not stem_flags[i]:
-                dist = penalty_distance
-            else:
-                dv = dst_vectors[i]
-                d = np.array([src_vector[j] - dv[j] for j in range(len(src_vector))])
-                dist = np.linalg.norm(d)
+            dv = dst_vectors[i]
+            d = np.array([src_vector[j] - dv[j] for j in range(len(src_vector))])
+            dist = np.linalg.norm(d)
             sa.update(dist, i)
 
         return [it[0] for it in sa.items]

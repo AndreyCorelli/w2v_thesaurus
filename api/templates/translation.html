@@ -1,0 +1,106 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+    <div class="container">
+        <h1>Translation: {{ src_language }} - {{ dst_language }}</h1>
+        <div>
+            <label for="word-search"></label>
+            <input type="search" id="word-search" name="word-search"
+                aria-label="Search a word" list="all-words">
+
+            <label for="lang"></label>
+            <select name="lang" id="lang">
+                {% for code, title in code_title %}
+                    {% if code != language %}
+                        <option value="{{ code }}">{{ title }}</option>
+                    {%  endif %}
+                {% endfor %}
+            </select>
+
+            <input id="btn-translate" type="button" value="translate" />
+        </div>
+    </div>
+    <div id="translation-pane"></div>
+    <div id="card-pane"></div>
+
+    <datalist id="all-words">
+        {% for w in words %}
+            <option value="{{ w }}">
+        {% endfor %}
+    </datalist>
+{% endblock %}
+
+{% block script %}
+    <script>
+        class DictManager {
+            constructor() {
+                document.getElementById('btn-translate').addEventListener('click', e => {
+                    this.translateWord();
+                });
+            }
+            toString() {
+                return '';
+            }
+            translateWord() {
+                let wrd = document.getElementById('word-search').value;
+                let lang = document.getElementById('lang').value;
+
+                if (!wrd.length)
+                    return;
+                let link = '{{ url_for("translate_word") }}';
+                let self = this;
+                fetch(link,
+                    {
+                        method: 'POST', // *GET, POST, PUT, DELETE, etc.
+                        headers: { "Content-Type": "application/json; charset=utf-8" },
+                        body: JSON.stringify({
+                            'word': wrd,
+                            'target_language': lang,
+                            'src_language': '{{ language }}'
+                        }) // body data type must match "Content-Type" header
+                    })
+                    .then(res => res.json())
+                    .then(response => {
+                        self.showTranslatedWord(response);
+                        self.showWordCard(response);
+                    })
+                    .catch(err => {
+                        console.log(err)
+                        alert("Server error occurred, see console for detail.")
+                    });
+            }
+            showTranslatedWord(transResponse) {
+                console.log(transResponse);
+                let targetDiv = document.getElementById('translation-pane');
+                let markup = '';
+                if (transResponse.synonyms.length) {
+                    markup = '<ol>';
+                    for (let i = 0; i < transResponse.synonyms.length; i++) {
+                        markup += `<li>${transResponse.synonyms[i]}</li>`;
+                    }
+                    markup += '</ol>';
+                } else {
+                    markup = `<p>${transResponse.message}</p>`
+                }
+                targetDiv.innerHTML = markup;
+            }
+            showWordCard(transResponse) {
+                let container = document.getElementById('card-pane');
+                if (!transResponse.word_card) {
+                    container.innerHTML = '';
+                    return;
+                }
+                let card = transResponse.word_card;
+                let markup = '<table>';
+                markup += `<tr><td>Frequency<td> <td>${card.frequency.toFixed(8)} / ` +
+                    `${(card.frequency_rel_rank * 100).toFixed(2)}%</td></tr>`;
+                markup += `<tr><td>Non-uniformity<td> <td>${card.non_uniformity.toFixed(8)}</td></tr>`;
+                markup += `<tr><td>Vector<td> <td>length: ${card.vector_length.toFixed(3)}, `+
+                    `variance: ${card.vector_variance.toFixed(3)}</td></tr>{card}`;
+                markup += '</table>'
+                container.innerHTML = markup;
+            }
+        }
+        window.manager = new DictManager();
+    </script>
+{% endblock %}

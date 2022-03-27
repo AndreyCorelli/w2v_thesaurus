@@ -69,6 +69,24 @@ def dictionary(language: str = 'en'):
     )
 
 
+@app.route('/translation/<src_language>/<dst_language>')
+def translation(src_language: str = 'ru', dst_language: str = 'en'):
+    #dct = get_dictionary(language)
+    #words = [w.word for w in dct.words]
+    #words.sort()
+    #mgr = CorpusFileManager()
+    #codes = mgr.get_lang_codes()
+    #code_title = [(c, alphabet_by_code[c].title) for c in codes]
+    # words = ','.join([f"'{w}'" for w in words])
+    return render_template(
+        'translation.html',
+        src_language=src_language,
+        dst_language=dst_language,
+        #words=words,
+        #code_title=code_title
+    )
+
+
 @app.route('/translate_word', methods=['POST'])
 def translate_word():
     data = request.json

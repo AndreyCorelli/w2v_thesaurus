@@ -18,29 +18,23 @@ class StatisticsDictionaryWordStemFinder(BaseDictionaryWordStemFinder):
     def __init__(self,
                  alphabet: Alphabet,
                  dictionary: LangDictionary):
-        super().__init__(alphabet, dictionary)
+        super().__init__()
+        self.alphabet = alphabet
+        self.dictionary = dictionary
         self.ngrams_collector = MarginNgramsCollector(alphabet, dictionary)
         self.ngrams_collector.build()
         self.all_words = {w.word for w in self.dictionary.words}
-        self.word_2_root_distance_quantile = 0.4
+        self.word_2_stem_distance_quantile = 0.4
 
-    def find_stems(self):
-        for word in self.dictionary.words:  # type: WordCard
-            possible_roots = self._get_possible_stems(word.word)
-            stem_word = self._check_possible_stems(possible_roots)
-            if stem_word:
-                word.stem = stem_word.stem
-                # word.prefix = root_word.prefix
-                # word.suffix = root_word.suffix
-            else:
-                word.stem = word.word
-        self._filter_possible_roots()
-        # self._count_roots()
+    def get_word_stem(self, word: str) -> Optional[str]:
+        possible_stems = self._get_possible_stems(word)
+        stem_card = self._check_possible_stems(possible_stems)
+        return (stem_card.stem if stem_card else word) or word
 
     def _get_possible_stems(
             self,
             word: str) -> List[WordCard]:
-        roots = {}  # Dict[str, WordCard]
+        stems: Dict[str, WordCard] = {}
         prefs = [None] + self.ngrams_collector.prefixes
         suffs = [None] + self.ngrams_collector.suffixes
         for pref in prefs:
@@ -55,9 +49,9 @@ class StatisticsDictionaryWordStemFinder(BaseDictionaryWordStemFinder):
                     card.stem = chopped
                     card.prefix = pref.text if pref else ''
                     card.suffix = suf.text if suf else ''
-                    roots[f'{card.prefix}+{chopped}+{card.suffix}'] = card
-        del roots[f'+{word}+']
-        root_list = [roots[r] for r in roots]
+                    stems[f'{card.prefix}+{chopped}+{card.suffix}'] = card
+        del stems[f'+{word}+']
+        root_list = list(stems.values())
         root_list.sort(key=lambda r: len(r.word))
         return root_list
 
@@ -76,24 +70,24 @@ class StatisticsDictionaryWordStemFinder(BaseDictionaryWordStemFinder):
                         return stem
         return None
 
-    def _count_roots(self):
+    def _count_stems(self):
         word_by_stem = {}  # type: Dict[str, List[WordCard]]
         for word in self.dictionary.words:
             if word.stem not in word_by_stem:
                 word_by_stem[word.stem] = [word]
             else:
                 word_by_stem[word.stem].append(word)
-        for root in word_by_stem:
-            root_count = sum([wr.count for wr in word_by_stem[root]])
-            for word in word_by_stem[root]:
-                word.root_count = root_count
+        for stem in word_by_stem:
+            stem_count = sum([wr.count for wr in word_by_stem[stem]])
+            for word in word_by_stem[stem]:
+                word.stem_count = stem_count
 
-    def _filter_possible_roots(self):
+    def _filter_possible_stems(self):
         """
         check the words' "roots": does the word vector remain more
         or less the same for the root?
         """
-        if self.word_2_root_distance_quantile >= 1:
+        if self.word_2_stem_distance_quantile >= 1:
             return
         card_by_word = {w.word: w for w in self.dictionary.words}
         word2root_distances = {}
@@ -114,7 +108,7 @@ class StatisticsDictionaryWordStemFinder(BaseDictionaryWordStemFinder):
         # above the specified threshold
         distances = [d for _, d in word2root_distances.items() if d < missing_root_distance]
         distances.sort()
-        max_distance = distances[int(len(distances) * self.word_2_root_distance_quantile)]
+        max_distance = distances[int(len(distances) * self.word_2_stem_distance_quantile)]
 
         for w in self.dictionary.words:
             w2r_d = word2root_distances.get(w.word)

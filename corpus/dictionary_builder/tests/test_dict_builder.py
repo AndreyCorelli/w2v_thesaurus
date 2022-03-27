@@ -2,11 +2,14 @@ import os
 from typing import List
 from unittest import TestCase
 
+from corpus.dictionary_builder.alphabet import alphabet_by_code
 from corpus.dictionary_builder.corpus_file_manager import CorpusFileManager
 from corpus.dictionary_builder.corpus_reader import CorpusReader
 from corpus.dictionary_builder.dictionary_builder import DictionaryBuilder
 from corpus.dictionary_builder.lang_dictionary import LangDictionary
 from corpus.dictionary_builder.vector_math import get_cosine_distance
+from corpus.dictionary_builder.word_stemming.dictionary_word_stem_finder import StatisticsDictionaryWordStemFinder
+from corpus.dictionary_builder.word_stemming.nltk_dictionary_word_stem_finder import NltkDictionaryWordStemFinder
 
 DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                          '..', '..', '..', 'data', 'texts')
@@ -38,7 +41,6 @@ class TestDictBuilder(TestCase):
         distances.sort(key=lambda t: t[1])
         return cards[distances[0][0]]
 
-
     def debug_word_neighbours_en(self):
         cards = CorpusFileManager().load('en').words
         w_0 = cards[0].word
@@ -59,15 +61,22 @@ class TestDictBuilder(TestCase):
         w_dog_nb_vect = w_dog_nb[0].vector
         self.assertGreater(len(w_0_nb), 1)
 
-    def test_build_word_list(self):
-        lang_code = 'en'
+    def test_build_dictionary_for_corpus_wo_nltk(self):
+        lang_code = 'ru'
 
         reader = CorpusReader()
         reader.read(os.path.join(DATA_PATH, lang_code), lang_code)
         builder = DictionaryBuilder()
-        builder.build(reader.sentences, lang_code)
-        cards = list(builder.card_by_word.values())
-        sorted_cards = list(cards)
-        sorted_cards.sort(key=lambda c: c.frequency_rank)
-        assert len(cards) > 10
-        CorpusFileManager().save(LangDictionary(lang_code, builder.cards))
+        lang_dict = builder.build(reader.sentences, lang_code)
+        assert len(lang_dict.words) > 10
+        CorpusFileManager().save(lang_dict)
+
+    def test_build_dictionary_for_corpus_with_nltk(self):
+        lang_code = 'en'
+
+        reader = CorpusReader()
+        reader.read(os.path.join(DATA_PATH, lang_code), lang_code)
+        builder = DictionaryBuilder(NltkDictionaryWordStemFinder())
+        lang_dict = builder.build(reader.sentences, lang_code)
+        assert len(lang_dict.words) > 10
+        CorpusFileManager().save(lang_dict)

@@ -1,5 +1,4 @@
-from corpus.dictionary_builder.alphabet import Alphabet
-from corpus.dictionary_builder.lang_dictionary import LangDictionary
+from typing import Optional
 
 
 class BaseDictionaryWordStemFinder:
@@ -9,11 +8,8 @@ class BaseDictionaryWordStemFinder:
     words' contexts too much
     """
 
-    def __init__(self,
-                 alphabet: Alphabet,
-                 dictionary: LangDictionary):
-        self.alphabet = alphabet
-        self.dictionary = dictionary
+    def __init__(self):
+        ...
 
-    def find_stems(self):
+    def get_word_stem(self, word: str) -> Optional[str]:
         raise NotImplementedError()

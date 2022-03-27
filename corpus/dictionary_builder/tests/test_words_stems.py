@@ -10,13 +10,13 @@ from corpus.dictionary_builder.word_stemming.nltk_dictionary_word_stem_finder im
 
 class TestWordsStems(TestCase):
     def test_debug_word_stemming(self):
-        lang = 'ru'
+        lang = 'en'
         cards = CorpusFileManager().load(lang).words
         alphabet = alphabet_by_code[lang]
         ld = LangDictionary(lang, cards)
 
         root_finder = StatisticsDictionaryWordStemFinder(alphabet, ld)
-        root_finder.find_stems()
+        root_finder.find_stems_in_dictionary()
         w_0 = cards[0].word
         CorpusFileManager().save(ld)
 
@@ -29,7 +29,7 @@ class TestWordsStems(TestCase):
         ld = LangDictionary(lang, cards)
 
         root_finder = NltkDictionaryWordStemFinder(alphabet, ld)
-        root_finder.find_stems()
+        root_finder.find_stems_in_dictionary()
         w_0 = cards[0].word
 
         save_path = mgr.get_file_path("", ld.lang_code)
