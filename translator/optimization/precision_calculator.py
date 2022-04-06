@@ -19,12 +19,10 @@ class TranslationPrecisionCalculator:
 
         self.dict_a = dict_a
         if not dict_a:
-            cards_a = mgr.load(lang_a).words
-            self.dict_a = LangDictionary(lang_a, cards_a)
+            self.dict_a = mgr.load(lang_a)
         self.dict_b = dict_b
         if not dict_b:
-            cards_b = mgr.load(lang_b).words
-            self.dict_b = LangDictionary(lang_b, cards_b)
+            self.dict_b = mgr.load(lang_b)
         self.translations = self._read_expected_translations(expected_translations_dict_path)
         self.synonym_finder = SynonymFinder(self.dict_a, self.dict_b)
         self.search_params = search_params or SynonymFinderParams()

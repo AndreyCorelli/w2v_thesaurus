@@ -13,7 +13,7 @@ class TestPrecisionCalculator(TestCase):
         translation_file_path = os.path.join(self.OWN_PATH, '..', '..', 'data',
                                              'optimization', 'translation_ru_en.csv')
         search_params = SynonymFinderParams()
-        search_params.synonym_count = 120  # 120 -> 0.0091, 2520->0.0
+        search_params.synonym_count = 1000  # 120 -> 0.0091, 2520->0.0
         search_params.depth = 1  # 2 -> 0.00917
         calc = TranslationPrecisionCalculator(
             translation_file_path,

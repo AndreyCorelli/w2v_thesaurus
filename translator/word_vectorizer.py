@@ -30,7 +30,7 @@ class WordVectorizer:
 
         v = (card.vector_length,
              card.vector_variance,
-             card.frequency,
+             card.frequency_rel_rank,
              card.non_uniformity,
              card.rel_length,
              card.prob_repeats,
